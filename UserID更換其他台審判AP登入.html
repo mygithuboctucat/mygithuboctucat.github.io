@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<title>Markmap</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+html {
+  font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+#mindmap {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+.markmap-dark {
+  background: #27272a;
+  color: white;
+}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/style.css">
+</head>
+<body>
+<svg id="mindmap"></svg>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script><script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/dist/browser/index.js"></script><script src="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/index.js"></script><script>(()=>{setTimeout(()=>{const{markmap:S,mm:Q}=window,$=new S.Toolbar;$.attach(Q);const I=$.render();I.setAttribute("style","position:absolute;bottom:20px;right:20px"),document.body.append(I)})})()</script><script>((l,U,M,R)=>{const N=l();window.mm=N.Markmap.create("svg#mindmap",(U||N.deriveOptions)(R),M),window.matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.classList.add("markmap-dark")})(()=>window.markmap,null,{"content":"&#x67d0;&#x53f0;&#x5be9;&#x5224;&#x7cfb;&#x7d71;AP&#x4e3b;&#x6a5f;&#x6709;&#x554f;&#x984c;&#xff0c;&#x5354;&#x52a9;USER&#x63db;&#x5230;&#x5176;&#x4ed6;&#x53f0;AP&#x4e3b;&#x6a5f;&#xff1a;","children":[{"content":"<strong>1.&#x5148;&#x770b;USER&#x662f;&#x7528;&#x54ea;&#x500b;&#x5e33;&#x865f;&#x767b;&#x5165;</strong>","children":[{"content":"1.1 &#x65b9;&#x6cd5;&#x4e00;&#x3001;&#x5be9;&#x5224;&#x7cfb;&#x7d71;&#x767b;&#x5165;&#x6703;&#x4f9d;&#x4e0d;&#x540c;&#x5e33;&#x865f;&#xff0c;&#x5206;&#x6d41;&#x81f3;&#x4e0d;&#x540c;&#x5be9;&#x5224;AP&#xff0c;&#x5206;&#x4e09;&#x500b;&#x7fa4;&#x7d44;  USER , GROUP, OTHER&#xff0c;&#x512a;&#x5148;&#x6b0a;&#xff1a; USER &gt; USER_BACKUP &gt; GROUP &gt; GROUP_BACKUP  &gt;OTHER&#x3002;","children":[],"payload":{"tag":"li","lines":"3,4"}},{"content":"1.2 &#x65b9;&#x6cd5;&#x4e8c;&#x3001;&#x67e5;&#x3010;G.SYSLOG&#x3011;&#x3002;","children":[],"payload":{"tag":"li","lines":"4,6"}}],"payload":{"tag":"h2","lines":"2,3"}},{"content":"<strong>2.&#x300a;&#x5be9;&#x5224;&#x5c0f;&#x5de5;&#x5177;&#x300b;&#x53d6;&#x6d88;&#x540c;&#x6b65;</strong>","children":[{"content":"2.1 &#x300a;&#x5be9;&#x5224;&#x5c0f;&#x5de5;&#x5177;&#x300b;&#x986f;&#x793a;&#x7684;&#x5bc6;&#x78bc;&#x5728;&#x300a;&#x5171;&#x7de8;&#x300b;&#x3002;","children":[],"payload":{"tag":"li","lines":"7,8"}},{"content":"2.2 &#x9078;&#x300a;&#x7a0b;&#x5f0f;&#x540c;&#x6b65;&#x670d;&#x52d9;&#x300b;&#xff0c;&#x300a;&#x555f;&#x52d5;&#x5c0f;&#x5de5;&#x5177;,&#x81ea;&#x52d5;&#x540c;&#x6b65;&#x7a0b;&#x5f0f;&#x300b;&#x6253;&#x52fe;&#x53d6;&#x6d88;&#x3002;","children":[],"payload":{"tag":"li","lines":"8,10"}}],"payload":{"tag":"h2","lines":"6,7"}},{"content":"<strong>3. &#x4fee;&#x6539;&#x300a;DISPATCH.ini&#x300b;</strong>","children":[{"content":"example&#xff1a;CA3xxx&#x7684;&#x4f7f;&#x7528;&#x8005;&#x73fe;&#x5728;&#x767b;&#x5165;&#x7684;&#x5be9;&#x5224;&#x7cfb;&#x7d71;&#x4e3b;&#x6a5f;(.209)&#x6709;&#x554f;&#x984c;&#x3002;","children":[],"payload":{"tag":"li","lines":"11,12"}},{"content":"3.1 DISPATCH.ini &#x8def;&#x5f91;","children":[{"content":"&#x300c; C:\\jud3\\bin\\DISPATCH.ini &#x300d;","children":[],"payload":{"tag":"li","lines":"13,14"}}],"payload":{"tag":"li","lines":"12,14"}},{"content":"3.2 &#x627e;&#x5230;&#x4e0b;&#x9762;&#x5167;&#x5bb9;","children":[{"content":";;&#x884c;&#x653f;user","children":[],"payload":{"tag":"li","lines":"15,16"}},{"content":"CA3=http://172.16.150.209/jud","children":[],"payload":{"tag":"li","lines":"16,17"}},{"content":"&#x5c07;&#x4e3b;&#x6a5f;ip&#x6539;&#x5230;&#x5be9;&#x5224;&#x7cfb;&#x7d71;&#x4e3b;&#x6a5f;(.211)","children":[],"payload":{"tag":"li","lines":"17,18"}},{"content":"CA3=http://172.16.150.211/jud","children":[],"payload":{"tag":"li","lines":"18,20"}}],"payload":{"tag":"li","lines":"14,20"}}],"payload":{"tag":"h2","lines":"10,11"}},{"content":"<strong>4.&#x300a;&#x5be9;&#x5224;&#x5c0f;&#x5de5;&#x5177;&#x300b;&#x56de;&#x5fa9;&#x540c;&#x6b65;&#x8a2d;&#x5b9a;</strong>","children":[{"content":"4.1 &#x9078;&#x300a;&#x7a0b;&#x5f0f;&#x540c;&#x6b65;&#x670d;&#x52d9;&#x300b;&#xff0c;&#x300a;&#x555f;&#x52d5;&#x5c0f;&#x5de5;&#x5177;,&#x81ea;&#x52d5;&#x540c;&#x6b65;&#x7a0b;&#x5f0f;&#x300b;&#x6253;&#x52fe;&#x3002;","children":[],"payload":{"tag":"li","lines":"21,22"}},{"content":"4.2 &#x4e0b;&#x6b21;&#x4f7f;&#x7528;&#x8005;&#x767b;&#x5165;&#x6703;&#x8207;File Server .192 &#x300c;\\sys\\jud3\\bin\\DISPATCH.ini&#x300d; &#x540c;&#x6b65;&#x3002;","children":[],"payload":{"tag":"li","lines":"22,23"}}],"payload":{"tag":"h2","lines":"20,21"}}],"payload":{"tag":"h1","lines":"0,1"}},null)</script>
+</body>
+</html>

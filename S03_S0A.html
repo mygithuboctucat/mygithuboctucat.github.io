@@ -1,0 +1,3223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>員工異動與代理人關聯互動模擬系統</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Vis Network CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/styles/vis-network.min.css" rel="stylesheet" type="text/css" />
+    
+    <!-- SweetAlert2 for beautiful popups -->
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #080b11;
+            --bg-secondary: #111827;
+            --card-bg: rgba(17, 24, 39, 0.65);
+            --card-hover-bg: rgba(24, 32, 51, 0.8);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.3);
+            --secondary: #8b5cf6;
+            --secondary-glow: rgba(139, 92, 246, 0.3);
+            
+            --accent-cyan: #06b6d4;
+            --accent-pink: #ec4899;
+            
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --warning: #f59e0b;
+            
+            --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --gradient-cyan-blue: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #080b11 70%);
+            color: var(--text-primary);
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Header Layout */
+        header {
+            background: rgba(8, 11, 17, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo svg {
+            stroke: url(#logo-grad);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Buttons styling */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--gradient-success);
+            color: white;
+            box-shadow: 0 4px 14px var(--success-glow);
+        }
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            background: var(--gradient-danger);
+            color: white;
+            box-shadow: 0 4px 14px var(--danger-glow);
+        }
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        /* Container Layout */
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards and Layout */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: border-color var(--transition-speed);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Table Styling */
+        .table-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all var(--transition-speed);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-secondary);
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            transition: background var(--transition-speed);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Highlights & Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .badge-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .highlight-row {
+            background: rgba(6, 182, 212, 0.08) !important;
+        }
+        
+        .cell-changed {
+            background: rgba(245, 158, 11, 0.2) !important;
+            border: 1px solid rgba(245, 158, 11, 0.5) !important;
+            animation: pulse-yellow 2s infinite;
+        }
+        
+        .cell-added {
+            background: rgba(16, 185, 129, 0.15) !important;
+            border: 1px solid rgba(16, 185, 129, 0.4) !important;
+        }
+        
+        @keyframes pulse-yellow {
+            0% { background-color: rgba(245, 158, 11, 0.15); }
+            50% { background-color: rgba(245, 158, 11, 0.35); }
+            100% { background-color: rgba(245, 158, 11, 0.15); }
+        }
+
+        .editable-cell input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-family: inherit;
+            width: 100%;
+            transition: border-color var(--transition-speed);
+        }
+
+        .editable-cell input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        /* Tab 2: Topology Graph Styling */
+        .topology-layout {
+            display: flex;
+            gap: 1.5rem;
+            height: calc(100vh - 200px);
+            min-height: 600px;
+        }
+
+        .graph-container-card {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #network-graph {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .graph-legend {
+            position: absolute;
+            left: 1.5rem;
+            bottom: 1.5rem;
+            background: rgba(8, 11, 17, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 12px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .detail-panel {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .relation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.50rem;
+            margin-top: 0.75rem;
+        }
+
+        .relation-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .relation-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(3px);
+        }
+
+        /* Tab 3: Game / Simulation Mode */
+        .game-layout {
+            display: flex;
+            gap: 1.5rem;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+        }
+
+        .game-sidebar {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .game-main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .level-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all var(--transition-speed);
+        }
+
+        .level-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.25);
+        }
+        
+        .level-btn.completed {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .scenario-card {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .scenario-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gradient-cyan-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scenario-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .task-list-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 0.85rem;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .task-list-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .task-item {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+        
+        .task-item svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .rule-tip {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px dashed rgba(245, 158, 11, 0.2);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #fbbf24;
+            line-height: 1.4;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .game-sandbox-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            overflow-y: auto;
+            padding: 1.25rem;
+            background: rgba(8, 11, 17, 0.4);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Selection Dropdown in Game */
+        .select-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.35rem 0.5rem;
+            border-radius: 6px;
+            width: 100%;
+            font-family: inherit;
+        }
+        .select-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .select-input option {
+            background: var(--bg-secondary);
+            color: white;
+        }
+
+        /* Diff style popup */
+        .diff-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .diff-row {
+            padding: 0.35rem 0.5rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .diff-added {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border-left: 3px solid #10b981;
+        }
+
+        .diff-removed {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-left: 3px solid #ef4444;
+        }
+        
+        .diff-changed {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border-left: 3px solid #f59e0b;
+        }
+
+        /* Modal Overlay & Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for scrolling support */
+            overflow-y: auto;        /* Scroll if modal is taller than window */
+            padding: 3rem 0;         /* Clear spacing above/below */
+        }
+
+        .modal-container {
+            width: 90%;
+            max-width: 500px;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: visible; /* Ensure dropdowns are not clipped */
+        }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-form-group {
+            margin-bottom: 1.25rem;
+            position: relative; /* Context for absolute dropdowns */
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 0.65rem 0.85rem;
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+        
+        .modal-input option {
+            background: #111827 !important; /* Explicit dark background */
+            color: #f3f4f6 !important;       /* Explicit light text to avoid invisible options */
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Floating notification bar */
+        .toast-notify {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(16, 185, 129, 0.95);
+            color: white;
+            padding: 0.85rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px var(--success-glow);
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+            animation: toastIn 0.3s forwards, toastOut 0.3s 2.7s forwards;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes toastOut {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <svg style="position: absolute; width: 0; height: 0;" width="0" height="0">
+        <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <!-- Header Section -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-branch"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            <span>員工異動與代理模擬</span>
+        </div>
+        
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('data-explorer')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                數據中心
+            </button>
+            <button class="tab-btn" onclick="switchTab('topology-map')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M12 8v4"/><path d="M12 12H5v4"/><path d="M12 12h7v4"/></svg>
+                關係拓撲圖
+            </button>
+            <button class="tab-btn" onclick="switchTab('game-mode')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                異動實戰賽
+            </button>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="resetAllData()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                重置資料
+            </button>
+            <button class="btn btn-success" onclick="exportToExcel()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                匯出 Excel
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Section -->
+    <main>
+        <!-- Tab 1: Data Explorer -->
+        <div id="data-explorer" class="tab-content active">
+            <div class="grid-2">
+                <!-- S3 Table Glass Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            S3 員工資料表
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="s3-count" class="badge badge-primary">0 筆資料</span>
+                            <button class="btn btn-primary btn-sm" onclick="showAddS3Modal(false)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                新增
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-controls">
+                        <div class="search-wrapper">
+                            <i data-lucide="search" class="search-icon" style="width: 16px; height: 16px;"></i>
+                            <input type="text" id="s3-search" class="search-input" placeholder="搜尋姓名、代碼或股別..." oninput="filterS3Table()">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="s3-table">
+                            <thead>
+                                <tr>
+                                    <th>使用者代碼 (USRID)</th>
+                                    <th>姓名 (USRNM)</th>
+                                    <th>股別 (DPT)</th>
+                                    <th>股別代碼 (DPTCD)</th>
+                                    <th>主要帳號 (ISLASTLOGIN)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SA Table Glass Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-cog"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="M14 11a5 5 0 0 0 5-5.07"/><path d="M21 19q-.3.45-.6.9l-1-1q-.2-.2-.5-.1t-.4.3l-.3.85q-.05.5-.35.9l-1.3-.3q-.3-.08-.6.1l-.85.85q-.3.3-.3.7v1.3"/></svg>
+                            SA 代理人表
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="sa-count" class="badge badge-primary">0 筆資料</span>
+                            <button class="btn btn-primary btn-sm" onclick="showAddSAModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                新增
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-controls">
+                        <div class="search-wrapper">
+                            <i data-lucide="search" class="search-icon" style="width: 16px; height: 16px;"></i>
+                            <input type="text" id="sa-search" class="search-input" placeholder="搜尋被代理人或代理人代碼..." oninput="filterSATable()">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="sa-table">
+                            <thead>
+                                <tr>
+                                    <th>被代理人代碼 (USRID)</th>
+                                    <th>代理人代碼 (AGENT)</th>
+                                    <th>是否代理 (ISAGENT)</th>
+                                    <th style="width: 80px; text-align: center;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Topology Map -->
+        <div id="topology-map" class="tab-content">
+            <div class="topology-layout">
+                <!-- Vis Network Graph Panel -->
+                <div class="glass-card graph-container-card">
+                    <div id="network-graph"></div>
+                    
+                    <!-- Graph Legend -->
+                    <div class="graph-legend">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #06b6d4; border: 2px solid #0891b2;"></span>
+                            <span>主要帳號 (ISLASTLOGIN = Y)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #a78bfa; border: 2px solid #8b5cf6;"></span>
+                            <span>兼辦/代理帳號</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #f87171; border: 2px solid #ef4444;"></span>
+                            <span>無姓名帳號 (待修正)</span>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 0.25rem 0;"></div>
+                        <div class="legend-item">
+                            <span class="legend-line" style="background: #3b82f6;"></span>
+                            <span>代理關係 (ISAGENT = Y) - 實線</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line" style="background: #a78bfa; border-top: 2px dashed #a78bfa; background: transparent; height: 0;"></span>
+                            <span>兼辦關係 (ISAGENT = N) - 虛線</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info detail sidebar panel -->
+                <div class="detail-panel">
+                    <div class="glass-card" style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                            <div class="card-title" style="font-size: 1.1rem;">
+                                <i data-lucide="info" style="color: var(--accent-cyan); width: 18px; height: 18px;"></i>
+                                人員詳細代理資料
+                            </div>
+                        </div>
+                        
+                        <div id="graph-details-empty" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem; margin: auto 0;">
+                            <i data-lucide="mouse-pointer-click" style="width: 48px; height: 48px; margin-bottom: 1rem; stroke-width: 1.5; color: var(--text-muted);"></i>
+                            <p style="font-size: 0.9rem;">在左側關係圖中點擊任意節點，查看其完整的代理鏈與帳號關聯。</p>
+                        </div>
+                        
+                        <div id="graph-details-content" style="display: none; flex-direction: column; gap: 1.25rem;">
+                            <!-- Node Name -->
+                            <div>
+                                <h3 id="detail-title" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.25rem; color: #fff;"></h3>
+                                <p id="detail-subtitle" style="font-size: 0.85rem; color: var(--accent-cyan); font-family: monospace;"></p>
+                            </div>
+                            
+                            <div style="border-top: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                            
+                            <!-- Key metrics -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div style="background: rgba(0, 0, 0, 0.2); padding: 0.75rem; border-radius: 10px;">
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">主要帳號</span>
+                                    <span id="detail-is-main" class="badge"></span>
+                                </div>
+                                <div style="background: rgba(0, 0, 0, 0.2); padding: 0.75rem; border-radius: 10px;">
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">股別代碼</span>
+                                    <strong id="detail-dptcd" style="color: #fff; font-size: 1rem;"></strong>
+                                </div>
+                            </div>
+
+                            <!-- List of Proxies (Agent of...) -->
+                            <div>
+                                <h4 style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;">
+                                    <i data-lucide="arrow-up-right" style="width: 14px; height: 14px; color: var(--success);"></i>
+                                    由該帳號代理/兼辦的股別 (代理對象)
+                                </h4>
+                                <div id="detail-agent-of-list" class="relation-list">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                            
+                            <!-- List of Who Agents this node (Agents are...) -->
+                            <div>
+                                <h4 style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;">
+                                    <i data-lucide="arrow-down-left" style="width: 14px; height: 14px; color: var(--secondary);"></i>
+                                    代理/兼辦此帳號的代理人
+                                </h4>
+                                <div id="detail-agents-list" class="relation-list">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Game / Simulation Mode -->
+        <div id="game-mode" class="tab-content">
+            <div class="game-layout">
+                <!-- Sidebar Task and controls -->
+                <div class="game-sidebar">
+                    <div class="glass-card" style="display: flex; flex-direction: column; gap: 0.75rem; height: 100%;">
+                        <div class="card-header" style="margin-bottom: 0.15rem; padding-bottom: 0.35rem;">
+                            <div class="card-title" style="font-size: 1.1rem;">
+                                <i data-lucide="shield-alert" style="color: var(--warning); width: 18px; height: 18px;"></i>
+                                異動實戰指引與同步
+                            </div>
+                        </div>
+                        
+                        <div class="level-selector">
+                            <button id="btn-lvl-1" class="level-btn active" onclick="loadGameLevel(1)">新進無代理</button>
+                            <button id="btn-lvl-2" class="level-btn" onclick="loadGameLevel(2)">內部調動代理</button>
+                            <button id="btn-lvl-3" class="level-btn" onclick="loadGameLevel(3)">離職交接代理</button>
+                        </div>
+                        
+                        <div class="scenario-card">
+                            <span id="game-level-tag" class="badge badge-primary" style="align-self: flex-start; margin-bottom: 0.25rem;">情境 1</span>
+                            <h3 id="game-title" class="scenario-title" style="font-size: 1.1rem; line-height: 1.3;">新人員入職（無代理兼辦）</h3>
+                            <p id="game-scenario" class="scenario-text" style="font-size: 0.8rem; line-height: 1.4;"></p>
+                            
+                            <!-- Wizard Form Section -->
+                            <div id="game-wizard-container" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="font-weight: 600; font-size: 0.8rem; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.25rem;">
+                                    <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                                    實戰配置精靈：
+                                </div>
+                                <div id="game-wizard-fields" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                    <!-- Dynamic fields -->
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="runWizardConfig()" style="justify-content: center; font-size: 0.8rem; padding: 0.4rem;">
+                                    <i data-lucide="play" style="width: 12px; height: 12px;"></i>
+                                    自動配置欄位
+                                </button>
+                            </div>
+
+                            <!-- Undo/Redo/Reset Action Buttons -->
+                            <div style="display: flex; gap: 0.4rem; justify-content: space-between; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03); margin-top: 0.25rem;">
+                                <button id="btn-game-undo" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.35rem 0.2rem; font-size: 0.75rem; justify-content: center; gap: 0.25rem;" onclick="undoGameAction()" disabled>
+                                    <i data-lucide="undo-2" style="width: 12px; height: 12px;"></i>
+                                    回到上一步
+                                </button>
+                                <button id="btn-game-redo" class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.35rem 0.2rem; font-size: 0.75rem; justify-content: center; gap: 0.25rem;" onclick="redoGameAction()" disabled>
+                                    <i data-lucide="redo-2" style="width: 12px; height: 12px;"></i>
+                                    重做
+                                </button>
+                                <button class="btn btn-secondary btn-sm" style="flex: 1; padding: 0.35rem 0.2rem; font-size: 0.75rem; justify-content: center; gap: 0.25rem;" onclick="resetGameSandbox()">
+                                    <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i>
+                                    復原重設
+                                </button>
+                            </div>
+
+                            <!-- Live Change Log -->
+                            <div id="change-log-box" style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.25rem;">
+                                <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-secondary);">📝 沙盒變更日誌 (與初始狀態比對)：</div>
+                                <div id="change-log-list" class="diff-container">
+                                    <!-- Dynamic change rows -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="game-controls" style="margin-top: auto; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <button class="btn btn-success" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 0.75rem;" onclick="syncGameToMain()">
+                                <i data-lucide="zap" style="width: 16px; height: 16px; fill: currentColor;"></i>
+                                ⚡ 同步更新至主系統
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main sandbox editable S3 and SA -->
+                <div class="game-main-area">
+                    <div class="game-sandbox-container">
+                        <!-- S3 Sandbox Table -->
+                        <div class="glass-card" style="padding: 1rem; background: rgba(17, 24, 39, 0.4);">
+                            <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.35rem;">
+                                <div class="card-title" style="font-size: 0.95rem;">
+                                    <i data-lucide="database" style="color: var(--accent-cyan); width: 14px; height: 14px;"></i>
+                                    S3 沙盒資料表 (雙擊或按新增編輯)
+                                </div>
+                                <button class="btn btn-primary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="showAddS3Modal(true)">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i>
+                                    新增員工
+                                </button>
+                            </div>
+                            <div class="table-container" style="max-height: 250px;">
+                                <table id="game-s3-table">
+                                    <thead>
+                                        <tr>
+                                            <th>使用者代碼 (USRID)</th>
+                                            <th>姓名 (USRNM)</th>
+                                            <th>股別 (DPT)</th>
+                                            <th>股別代碼 (DPTCD)</th>
+                                            <th>主要帳號 (ISLASTLOGIN)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- SA Sandbox Table -->
+                        <div class="glass-card" style="padding: 1rem; background: rgba(17, 24, 39, 0.4);">
+                            <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.35rem;">
+                                <div class="card-title" style="font-size: 0.95rem;">
+                                    <i data-lucide="user-cog" style="color: var(--accent-pink); width: 14px; height: 14px;"></i>
+                                    SA 沙盒代理人表
+                                </div>
+                                <button class="btn btn-primary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="showAddGameSAModal()">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i>
+                                    新增代理關係
+                                </button>
+                            </div>
+                            <div class="table-container" style="max-height: 250px;">
+                                <table id="game-sa-table">
+                                    <thead>
+                                        <tr>
+                                            <th>被代理人代碼 (USRID)</th>
+                                            <th>代理人代碼 (AGENT)</th>
+                                            <th>是否代理 (ISAGENT)</th>
+                                            <th style="width: 80px; text-align: center;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom Modal Overlay (Add SA relation) -->
+    <div id="add-sa-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header" id="modal-title">新增 SA 代理關係</div>
+            <form id="sa-form" onsubmit="handleSAModalSubmit(event)">
+                <div class="modal-form-group">
+                    <label class="modal-label" for="modal-usrid">被代理人或被兼辦代碼 (S3.USRID)</label>
+                    <select id="modal-usrid" class="modal-input" required></select>
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-label" for="modal-agent">代理人或兼辦代碼 (S3.USRID，通常為主要帳號)</label>
+                    <select id="modal-agent" class="modal-input" required></select>
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-label" for="modal-isagent">關係類型 (ISAGENT)</label>
+                    <select id="modal-isagent" class="modal-input" required>
+                        <option value="Y">純代理 (Y)</option>
+                        <option value="N">兼辦 (N)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeSAModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">確認新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom S3 Modal Overlay (Add S3 row) -->
+    <div id="add-s3-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header" id="s3-modal-title">新增 S3 員工資料</div>
+            <form id="s3-form" onsubmit="handleS3ModalSubmit(event)">
+                <div class="modal-form-group">
+                    <label class="modal-label" for="s3-usrid">使用者代碼 (USRID)</label>
+                    <input type="text" id="s3-usrid" class="modal-input" placeholder="例如 JV5888" required>
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-label" for="s3-usrnm">姓名 (USRNM)</label>
+                    <input type="text" id="s3-usrnm" class="modal-input" placeholder="例如 陳小明">
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-label" for="s3-dpt-select">工作股別 (DPT)</label>
+                    <select id="s3-dpt-select" class="modal-input" onchange="handleS3DptSelectChange(this.value)" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <!-- Hidden inputs for custom department, shown only when "custom" is selected -->
+                <div id="s3-custom-dpt-fields" style="display: none; flex-direction: column; gap: 1.25rem; margin-bottom: 1.25rem;">
+                    <div class="modal-form-group" style="margin-bottom: 0;">
+                        <label class="modal-label" for="s3-dpt">自訂股別名稱</label>
+                        <input type="text" id="s3-dpt" class="modal-input" placeholder="例如 開六股">
+                    </div>
+                    <div class="modal-form-group" style="margin-bottom: 0;">
+                        <label class="modal-label" for="s3-dptcd">自訂股別代碼</label>
+                        <input type="text" id="s3-dptcd" class="modal-input" placeholder="例如 88 或 CD2">
+                    </div>
+                </div>
+                <div class="modal-form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="s3-islastlogin" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label class="modal-label" for="s3-islastlogin" style="margin-bottom: 0; cursor: pointer; user-select: none;">主要帳號 (ISLASTLOGIN = Y)</label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeS3Modal()">取消</button>
+                    <button type="submit" class="btn btn-primary">確認新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notify" class="toast-notify">資料已成功匯入！</div>
+
+    <!-- Scripts -->
+    <!-- SheetJS (XLSX) for Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Vis Network (Graph visualization) -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <!-- Canvas Confetti for game success -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Clean JSON embedded from python
+        const INITIAL_DATA = {
+  "S3": [
+    {
+      "USRID": "JV5010",
+      "USRNM": "李一良",
+      "DPT": "吉股",
+      "DPTCD": 10,
+      "ISLASTLOGIN": "Y"
+    },
+    {
+      "USRID": "JV5011",
+      "USRNM": "蔡一儒",
+      "DPT": "如股",
+      "DPTCD": 11,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5019",
+      "USRNM": "李二寧",
+      "DPT": "恆股",
+      "DPTCD": 19,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5026",
+      "USRNM": "吳一珊",
+      "DPT": "健股",
+      "DPTCD": 26,
+      "ISLASTLOGIN": "Y"
+    },
+    {
+      "USRID": "JV5028",
+      "USRNM": "蔡一儒",
+      "DPT": "康股",
+      "DPTCD": 28,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5030",
+      "USRNM": "李一良",
+      "DPT": "祥股",
+      "DPTCD": 30,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5034",
+      "USRNM": "蔡一儒",
+      "DPT": "勤股",
+      "DPTCD": 34,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5035",
+      "USRNM": "蔡一儒",
+      "DPT": "意股",
+      "DPTCD": 35,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5053",
+      "USRNM": "吳一珊",
+      "DPT": "簡股",
+      "DPTCD": 53,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5056",
+      "USRNM": "蔡一儒",
+      "DPT": "非股",
+      "DPTCD": 56,
+      "ISLASTLOGIN": "Y"
+    },
+    {
+      "USRID": "JV5127",
+      "USRNM": null,
+      "DPT": "開股",
+      "DPTCD": 127,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5151",
+      "USRNM": "吳一珊",
+      "DPT": "簡一股",
+      "DPTCD": 151,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5152",
+      "USRNM": "李一良",
+      "DPT": "祥一股",
+      "DPTCD": 152,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5153",
+      "USRNM": "李一良",
+      "DPT": "開一股",
+      "DPTCD": 153,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5154",
+      "USRNM": "蔡一儒",
+      "DPT": "開二股",
+      "DPTCD": 154,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5155",
+      "USRNM": "李一良",
+      "DPT": "開三股",
+      "DPTCD": 155,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5156",
+      "USRNM": "吳一珊",
+      "DPT": "開四股",
+      "DPTCD": 156,
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CD1",
+      "USRNM": "事務官",
+      "DPT": "向林股",
+      "DPTCD": "CD1",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDD",
+      "USRNM": "蔡一儒",
+      "DPT": "向股",
+      "DPTCD": "CDD",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDE",
+      "USRNM": "李三賢",
+      "DPT": "淨股",
+      "DPTCD": "CDE",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDF",
+      "USRNM": "吳二雯",
+      "DPT": "祐股",
+      "DPTCD": "CDF",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDG",
+      "USRNM": "蔡一儒",
+      "DPT": "晉股",
+      "DPTCD": "CDG",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDH",
+      "USRNM": "吳二雯",
+      "DPT": "祐一股",
+      "DPTCD": "CDH",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDI",
+      "USRNM": "蔡一儒",
+      "DPT": "非一股",
+      "DPTCD": "CDI",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDJ",
+      "USRNM": "吳一珊",
+      "DPT": "簡二股",
+      "DPTCD": "CDJ",
+      "ISLASTLOGIN": null
+    },
+    {
+      "USRID": "JV5CDK",
+      "USRNM": "徐一玲",
+      "DPT": "開五股",
+      "DPTCD": "CDK",
+      "ISLASTLOGIN": "Y"
+    }
+  ],
+  "SA": [
+    {
+      "USRID": "JV5030",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5152",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5010",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5019",
+      "AGENT": "JV5011",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5026",
+      "AGENT": "JV5011",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5028",
+      "AGENT": "JV5011",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5035",
+      "AGENT": "JV5011",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5056",
+      "AGENT": "JV5011",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5011",
+      "AGENT": "JV5019",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5028",
+      "AGENT": "JV5019",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127B",
+      "AGENT": "JV5019",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5053",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5026",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5151",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDJ",
+      "AGENT": "JV5026",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5010",
+      "AGENT": "JV5028",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5011",
+      "AGENT": "JV5028",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5019",
+      "AGENT": "JV5028",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5030",
+      "AGENT": "JV5028",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5056",
+      "AGENT": "JV5028",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5010",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5028",
+      "AGENT": "JV5030",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5030",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5019",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5053",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5034",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5011",
+      "AGENT": "JV5035",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5026",
+      "AGENT": "JV5035",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5026",
+      "AGENT": "JV5035",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5056",
+      "AGENT": "JV5035",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5019",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5034",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5053",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5011",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5028",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5034",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5035",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5152",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5153",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5154",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5155",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5156",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDD",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDG",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDI",
+      "AGENT": "JV5056",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5010",
+      "AGENT": "JV5127",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5030",
+      "AGENT": "JV5127",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5056",
+      "AGENT": "JV5152",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5056",
+      "AGENT": "JV5CD1",
+      "ISAGENT": "Y"
+    },
+    {
+      "USRID": "JV5127A",
+      "AGENT": "JV5CDE",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5019",
+      "AGENT": "JV5CDF",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5127C",
+      "AGENT": "JV5CDF",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDD",
+      "AGENT": "JV5CDF",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDE",
+      "AGENT": "JV5CDF",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDH",
+      "AGENT": "JV5CDF",
+      "ISAGENT": "N"
+    },
+    {
+      "USRID": "JV5CDK",
+      "AGENT": "JV5CDI",
+      "ISAGENT": "N"
+    }
+  ]
+};
+
+        // Global State
+        let S3Data = [];
+        let SAData = [];
+        
+        // Active tab tracking
+        let activeTab = 'data-explorer';
+        
+        // Network instance
+        let network = null;
+        
+        // Game state
+        let currentGameLevel = 1;
+        let gameS3Data = [];
+        let gameSAData = [];
+        let isGameModal = false; // flag to distinguish main / game modal
+        let isGameS3Modal = false; // flag to distinguish S3 main / game modal
+        
+        // Undo / Redo / Reset Sandbox State History
+        let gameHistory = [];
+        let gameRedoStack = [];
+        let initialGameState = null;
+        
+        // Load initial data
+        function initData() {
+            S3Data = JSON.parse(JSON.stringify(INITIAL_DATA.S3));
+            SAData = JSON.parse(JSON.stringify(INITIAL_DATA.SA));
+        }
+
+        // Switch Tabs
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
+                btn.getAttribute('onclick').includes(tabId)
+            );
+            if (targetBtn) targetBtn.classList.add('active');
+            
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) targetContent.classList.add('active');
+            
+            // Post-tab switch actions
+            if (tabId === 'topology-map') {
+                initTopologyMap();
+            } else if (tabId === 'game-mode') {
+                loadGameLevel(currentGameLevel);
+            }
+        }
+
+        // Format cell helpers
+        function isNullOrEmpty(val) {
+            return val === null || val === undefined || val === '' || val === 'NaN' || (typeof val === 'number' && isNaN(val));
+        }
+
+        function getCellText(val) {
+            return isNullOrEmpty(val) ? '—' : val;
+        }
+
+        // ------------------ DATA EXPLORER TAB ------------------
+        
+        // Render S3 Table
+        function renderS3Table() {
+            const tbody = document.querySelector('#s3-table tbody');
+            tbody.innerHTML = '';
+            
+            const query = document.getElementById('s3-search').value.toLowerCase();
+            
+            const filtered = S3Data.filter(row => {
+                const usrid = (row.USRID || '').toLowerCase();
+                const usrnm = (row.USRNM || '').toLowerCase();
+                const dpt = (row.DPT || '').toLowerCase();
+                const dptcd = String(row.DPTCD || '').toLowerCase();
+                return usrid.includes(query) || usrnm.includes(query) || dpt.includes(query) || dptcd.includes(query);
+            });
+            
+            document.getElementById('s3-count').textContent = `${filtered.length} 筆資料`;
+            
+            filtered.forEach(row => {
+                const tr = document.createElement('tr');
+                if (row.ISLASTLOGIN === 'Y') {
+                    tr.classList.add('highlight-row');
+                }
+                
+                tr.innerHTML = `
+                    <td style="font-family: monospace; font-weight: 500;">${row.USRID}</td>
+                    <td class="editable-cell">
+                        <input type="text" value="${row.USRNM || ''}" onchange="updateS3Cell('${row.USRID}', 'USRNM', this.value)" placeholder="未命名">
+                    </td>
+                    <td>${row.DPT}</td>
+                    <td>${row.DPTCD}</td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" ${row.ISLASTLOGIN === 'Y' ? 'checked' : ''} onchange="updateS3Cell('${row.USRID}', 'ISLASTLOGIN', this.checked ? 'Y' : null)">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Update S3 Data
+        function updateS3Cell(usrid, field, value) {
+            const row = S3Data.find(r => r.USRID === usrid);
+            if (row) {
+                if (field === 'ISLASTLOGIN') {
+                    row.ISLASTLOGIN = value;
+                } else {
+                    row.USRNM = value || null;
+                }
+                showToast("S3 資料表已成功更新！");
+                renderS3Table();
+            }
+        }
+
+        // Filter S3
+        function filterS3Table() {
+            renderS3Table();
+        }
+
+        // Render SA Table
+        function renderSATable() {
+            const tbody = document.querySelector('#sa-table tbody');
+            tbody.innerHTML = '';
+            
+            const query = document.getElementById('sa-search').value.toLowerCase();
+            
+            const filtered = SAData.filter(row => {
+                const usrid = (row.USRID || '').toLowerCase();
+                const agent = (row.AGENT || '').toLowerCase();
+                return usrid.includes(query) || agent.includes(query);
+            });
+            
+            document.getElementById('sa-count').textContent = `${filtered.length} 筆資料`;
+            
+            filtered.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-family: monospace;">${row.USRID}</td>
+                    <td style="font-family: monospace;">${row.AGENT}</td>
+                    <td style="text-align: center;">
+                        <span class="badge ${row.ISAGENT === 'Y' ? 'badge-primary' : 'badge-secondary'}" style="cursor: pointer;" onclick="toggleSAAgentStatus(${index})">
+                            ${row.ISAGENT === 'Y' ? '代理 (Y)' : '兼辦 (N)'}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-danger btn-sm" onclick="deleteSARelation(${index})">
+                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        // Toggle SA Agent status
+        function toggleSAAgentStatus(index) {
+            SAData[index].ISAGENT = SAData[index].ISAGENT === 'Y' ? 'N' : 'Y';
+            showToast("代理狀態已修改！");
+            renderSATable();
+        }
+
+        // Delete SA row
+        function deleteSARelation(index) {
+            Swal.fire({
+                title: '確定刪除？',
+                text: "這將移除此代理/兼辦關聯關係！",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: '確定刪除',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    SAData.splice(index, 1);
+                    showToast("已成功刪除代理關係！");
+                    renderSATable();
+                }
+            });
+        }
+
+        // Filter SA
+        function filterSATable() {
+            renderSATable();
+        }
+
+        // Add S3 Modal management
+        function showAddS3Modal(isGame) {
+            isGameS3Modal = isGame;
+            document.getElementById('s3-usrid').value = '';
+            document.getElementById('s3-usrnm').value = '';
+            document.getElementById('s3-islastlogin').checked = false;
+            
+            // Collect unique DPT & DPTCD pairs
+            const sourceS3 = isGame ? gameS3Data : S3Data;
+            const dptMap = {};
+            sourceS3.forEach(row => {
+                if (row.DPT && row.DPTCD !== undefined && row.DPTCD !== null) {
+                    dptMap[row.DPT] = row.DPTCD;
+                }
+            });
+            
+            const select = document.getElementById('s3-dpt-select');
+            select.innerHTML = '';
+            
+            // Add existing options
+            Object.keys(dptMap).forEach(dpt => {
+                const dptcd = dptMap[dpt];
+                const opt = new Option(`${dpt} (代碼: ${dptcd})`, `${dpt}||${dptcd}`);
+                select.add(opt);
+            });
+            
+            // Add custom option
+            const customOpt = new Option("自訂全新股別...", "custom");
+            select.add(customOpt);
+            
+            // Reset custom fields
+            document.getElementById('s3-dpt').value = '';
+            document.getElementById('s3-dptcd').value = '';
+            document.getElementById('s3-custom-dpt-fields').style.display = 'none';
+            
+            document.getElementById('s3-modal-title').textContent = isGame ? "新增沙盒 S3 員工資料" : "新增 S3 員工資料";
+            document.getElementById('add-s3-modal').style.display = 'flex';
+        }
+
+        function handleS3DptSelectChange(value) {
+            const customFields = document.getElementById('s3-custom-dpt-fields');
+            if (value === 'custom') {
+                customFields.style.display = 'flex';
+                document.getElementById('s3-dpt').required = true;
+                document.getElementById('s3-dptcd').required = true;
+            } else {
+                customFields.style.display = 'none';
+                document.getElementById('s3-dpt').required = false;
+                document.getElementById('s3-dptcd').required = false;
+            }
+        }
+
+        function closeS3Modal() {
+            document.getElementById('add-s3-modal').style.display = 'none';
+        }
+
+        function handleS3ModalSubmit(event) {
+            event.preventDefault();
+            const usrid = document.getElementById('s3-usrid').value.trim();
+            const usrnm = document.getElementById('s3-usrnm').value.trim();
+            const dptSelect = document.getElementById('s3-dpt-select').value;
+            
+            let dpt = "";
+            let dptcd = "";
+            
+            if (dptSelect === 'custom') {
+                dpt = document.getElementById('s3-dpt').value.trim();
+                dptcd = document.getElementById('s3-dptcd').value.trim();
+            } else {
+                const parts = dptSelect.split('||');
+                dpt = parts[0];
+                dptcd = parts[1];
+            }
+            
+            if (!dpt || !dptcd) {
+                Swal.fire('輸入錯誤', '請選擇或填寫股別與股別代碼！', 'error');
+                return;
+            }
+            
+            const islastlogin = document.getElementById('s3-islastlogin').checked ? 'Y' : null;
+            
+            // Validation
+            const sourceList = isGameS3Modal ? gameS3Data : S3Data;
+            const dup = sourceList.find(r => r.USRID.toUpperCase() === usrid.toUpperCase());
+            if (dup) {
+                Swal.fire('代碼重複', '該使用者代碼 (USRID) 已存在！', 'error');
+                return;
+            }
+            
+            const newRow = {
+                USRID: usrid,
+                USRNM: usrnm || null,
+                DPT: dpt,
+                DPTCD: isNaN(dptcd) ? dptcd : parseInt(dptcd),
+                ISLASTLOGIN: islastlogin
+            };
+            
+            if (isGameS3Modal) {
+                saveGameHistory();
+                gameS3Data.push(newRow);
+                showToast("已新增沙盒同仁資料！");
+                renderGameSandboxTables();
+            } else {
+                S3Data.push(newRow);
+                showToast("S3 員工資料新增成功！");
+                renderS3Table();
+            }
+            closeS3Modal();
+        }
+
+        // Add SA Modal management
+        function showAddSAModal() {
+            isGameModal = false;
+            document.getElementById('modal-title').textContent = "新增 SA 代理關係";
+            populateSAModalSelects(S3Data);
+            document.getElementById('add-sa-modal').style.display = 'flex';
+        }
+
+        function populateSAModalSelects(s3Source) {
+            const usridSelect = document.getElementById('modal-usrid');
+            const agentSelect = document.getElementById('modal-agent');
+            
+            usridSelect.innerHTML = '';
+            agentSelect.innerHTML = '';
+            
+            // 1. Populate 被代理人 (USRID)
+            s3Source.forEach(row => {
+                const nameStr = row.USRNM ? ` (${row.USRNM})` : ' (無姓名)';
+                const optText = `${row.USRID}${nameStr} - ${row.DPT}`;
+                usridSelect.add(new Option(optText, row.USRID));
+            });
+            
+            // 2. Populate 代理人 (AGENT) - Main accounts first, others last
+            const mainAccounts = [];
+            const otherAccounts = [];
+            
+            s3Source.forEach(row => {
+                const nameStr = row.USRNM ? ` (${row.USRNM})` : ' (無姓名)';
+                const optText = `${row.USRID}${nameStr} - ${row.DPT}`;
+                if (row.ISLASTLOGIN === 'Y') {
+                    mainAccounts.push({ text: `${optText} [主帳號]`, value: row.USRID });
+                } else {
+                    otherAccounts.push({ text: `${optText} [兼辦/附屬]`, value: row.USRID });
+                }
+            });
+            
+            mainAccounts.forEach(item => {
+                agentSelect.add(new Option(item.text, item.value));
+            });
+            otherAccounts.forEach(item => {
+                agentSelect.add(new Option(item.text, item.value));
+            });
+        }
+
+        function closeSAModal() {
+            document.getElementById('add-sa-modal').style.display = 'none';
+        }
+
+        function handleSAModalSubmit(event) {
+            event.preventDefault();
+            const usrid = document.getElementById('modal-usrid').value;
+            const agent = document.getElementById('modal-agent').value;
+            const isagent = document.getElementById('modal-isagent').value;
+            
+            if (usrid === agent) {
+                Swal.fire({
+                    title: '設定錯誤',
+                    text: '員工無法自己代理自己！被代理人代碼不能與代理人相同。',
+                    icon: 'error',
+                    confirmButtonColor: '#3b82f6'
+                });
+                return;
+            }
+            
+            if (isGameModal) {
+                // Game Sandbox mode
+                const dup = gameSAData.find(row => row.USRID === usrid && row.AGENT === agent);
+                if (dup) {
+                    Swal.fire('關係已存在', '此代理關係已在沙盒表中！', 'warning');
+                    return;
+                }
+                
+                saveGameHistory();
+                gameSAData.push({ USRID: usrid, AGENT: agent, ISAGENT: isagent });
+                showToast("已在沙盒中加入代理關係！");
+                renderGameSandboxTables();
+            } else {
+                // Main database mode
+                const dup = SAData.find(row => row.USRID === usrid && row.AGENT === agent);
+                if (dup) {
+                    Swal.fire('關係已存在', '此代理關係已存在於 SA 資料表中！', 'warning');
+                    return;
+                }
+                
+                SAData.push({ USRID: usrid, AGENT: agent, ISAGENT: isagent });
+                showToast("代理關係新增成功！");
+                renderSATable();
+            }
+            
+            closeSAModal();
+        }
+
+        // ------------------ TOPOLOGY MAP TAB ------------------
+
+        function initTopologyMap() {
+            const container = document.getElementById('network-graph');
+            
+            const nodesArray = [];
+            const edgesArray = [];
+            
+            const s3Map = {};
+            S3Data.forEach(row => {
+                s3Map[row.USRID] = row;
+            });
+
+            const allUniqueIds = new Set();
+            S3Data.forEach(row => allUniqueIds.add(row.USRID));
+            SAData.forEach(row => {
+                allUniqueIds.add(row.USRID);
+                allUniqueIds.add(row.AGENT);
+            });
+            
+            allUniqueIds.forEach(id => {
+                const s3Obj = s3Map[id];
+                let label = `[${id}]`;
+                let colorBackground = "#a78bfa"; 
+                let colorBorder = "#8b5cf6";
+                let size = 20;
+                
+                if (s3Obj) {
+                    const name = s3Obj.USRNM || '無姓名';
+                    const dept = s3Obj.DPT || '無股別';
+                    label = `${name}\n(${dept})\n[${id}]`;
+                    
+                    if (s3Obj.ISLASTLOGIN === 'Y') {
+                        colorBackground = "#06b6d4"; 
+                        colorBorder = "#0891b2";
+                        size = 28;
+                    } else if (isNullOrEmpty(s3Obj.USRNM)) {
+                        colorBackground = "#f87171"; 
+                        colorBorder = "#ef4444";
+                    }
+                } else {
+                    label = `虛擬帳號\n[${id}]`;
+                    colorBackground = "#f87171";
+                    colorBorder = "#ef4444";
+                }
+                
+                nodesArray.push({
+                    id: id,
+                    label: label,
+                    size: size,
+                    shape: "dot",
+                    color: {
+                        background: colorBackground,
+                        border: colorBorder,
+                        highlight: {
+                            background: "#00f2fe",
+                            border: "#ffffff"
+                        }
+                    },
+                    font: {
+                        color: "#e2e8f0",
+                        size: 11,
+                        face: "Noto Sans TC"
+                    },
+                    borderWidth: 2,
+                    shadow: true
+                });
+            });
+
+            SAData.forEach(row => {
+                const isAgent = row.ISAGENT === 'Y';
+                edgesArray.push({
+                    from: row.USRID,
+                    to: row.AGENT,
+                    arrows: "to",
+                    label: isAgent ? "代理" : "兼辦",
+                    font: {
+                        color: "#9ca3af",
+                        size: 9,
+                        align: "middle",
+                        face: "Noto Sans TC"
+                    },
+                    color: {
+                        color: isAgent ? "#3b82f6" : "#a78bfa",
+                        highlight: "#00f2fe"
+                    },
+                    dashes: !isAgent, 
+                    width: isAgent ? 2 : 1.2,
+                    length: 150
+                });
+            });
+
+            const data = {
+                nodes: new vis.DataSet(nodesArray),
+                edges: new vis.DataSet(edgesArray)
+            };
+
+            const options = {
+                nodes: {
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    smooth: {
+                        type: "cubicBezier",
+                        forceDirection: "none",
+                        roundness: 0.4
+                    }
+                },
+                physics: {
+                    forceAtlas2Based: {
+                        gravitationalConstant: -50,
+                        centralGravity: 0.01,
+                        springLength: 100,
+                        springConstant: 0.08
+                    },
+                    maxVelocity: 50,
+                    solver: "forceAtlas2Based",
+                    timestep: 0.35,
+                    stabilization: {
+                        iterations: 150
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+
+            network = new vis.Network(container, data, options);
+            
+            network.on("click", function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    showNodeDetail(nodeId);
+                    
+                    const connectedNodes = network.getConnectedNodes(nodeId);
+                    const allNodesToHighlight = [nodeId, ...connectedNodes];
+                    
+                    const updateArray = nodesArray.map(node => {
+                        const isFocus = allNodesToHighlight.includes(node.id);
+                        return {
+                            id: node.id,
+                            color: isFocus ? node.color : {
+                                background: "rgba(100,100,100,0.15)",
+                                border: "rgba(100,100,100,0.1)"
+                            },
+                            font: {
+                                color: isFocus ? "#e2e8f0" : "rgba(226,232,240,0.15)"
+                            }
+                        };
+                    });
+                    data.nodes.update(updateArray);
+                } else {
+                    data.nodes.update(nodesArray);
+                    document.getElementById('graph-details-empty').style.display = 'block';
+                    document.getElementById('graph-details-content').style.display = 'none';
+                }
+            });
+        }
+
+        function showNodeDetail(id) {
+            document.getElementById('graph-details-empty').style.display = 'none';
+            const detailContainer = document.getElementById('graph-details-content');
+            detailContainer.style.display = 'flex';
+            
+            const s3Obj = S3Data.find(r => r.USRID === id);
+            const name = s3Obj ? (s3Obj.USRNM || '無姓名') : '未知人員';
+            const dept = s3Obj ? (s3Obj.DPT || '無股別') : '未登錄股別';
+            
+            document.getElementById('detail-title').textContent = `${name} (${dept})`;
+            document.getElementById('detail-subtitle').textContent = `使用者代碼: ${id}`;
+            
+            const isMainBadge = document.getElementById('detail-is-main');
+            if (s3Obj && s3Obj.ISLASTLOGIN === 'Y') {
+                isMainBadge.className = "badge badge-success";
+                isMainBadge.textContent = "是 (Y)";
+            } else {
+                isMainBadge.className = "badge badge-secondary";
+                isMainBadge.textContent = "否";
+            }
+            
+            document.getElementById('detail-dptcd').textContent = s3Obj ? s3Obj.DPTCD : '—';
+            
+            const proxyForThis = SAData.filter(row => row.USRID === id);
+            const agentsList = document.getElementById('detail-agents-list');
+            agentsList.innerHTML = '';
+            
+            if (proxyForThis.length === 0) {
+                agentsList.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.25rem;">無指定代理人</div>`;
+            } else {
+                proxyForThis.forEach(row => {
+                    const agentS3 = S3Data.find(r => r.USRID === row.AGENT);
+                    const agentName = agentS3 ? (agentS3.USRNM || '無姓名') : '未知人員';
+                    const agentDept = agentS3 ? (agentS3.DPT || '') : '';
+                    const typeText = row.ISAGENT === 'Y' ? '純代理' : '兼辦';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'relation-item';
+                    div.onclick = () => focusOnNode(row.AGENT);
+                    div.innerHTML = `
+                        <span>${agentName} ${agentDept ? `(${agentDept})` : ''} [${row.AGENT}]</span>
+                        <span class="badge ${row.ISAGENT === 'Y' ? 'badge-primary' : 'badge-secondary'}">${typeText}</span>
+                    `;
+                    agentsList.appendChild(div);
+                });
+            }
+            
+            const proxyingOthers = SAData.filter(row => row.AGENT === id);
+            const agentOfList = document.getElementById('detail-agent-of-list');
+            agentOfList.innerHTML = '';
+            
+            if (proxyingOthers.length === 0) {
+                agentOfList.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.25rem;">無代理任何股別</div>`;
+            } else {
+                proxyingOthers.forEach(row => {
+                    const targetS3 = S3Data.find(r => r.USRID === row.USRID);
+                    const targetName = targetS3 ? (targetS3.USRNM || '無姓名') : '未知人員';
+                    const targetDept = targetS3 ? (targetS3.DPT || '') : '';
+                    const typeText = row.ISAGENT === 'Y' ? '純代理' : '兼辦';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'relation-item';
+                    div.onclick = () => focusOnNode(row.USRID);
+                    div.innerHTML = `
+                        <span>${targetName} ${targetDept ? `(${targetDept})` : ''} [${row.USRID}]</span>
+                        <span class="badge ${row.ISAGENT === 'Y' ? 'badge-primary' : 'badge-secondary'}">${typeText}</span>
+                    `;
+                    agentOfList.appendChild(div);
+                });
+            }
+        }
+
+        function focusOnNode(nodeId) {
+            if (network) {
+                network.selectNodes([nodeId]);
+                network.focus(nodeId, {
+                    scale: 1.1,
+                    animation: {
+                        duration: 500,
+                        easingFunction: "easeInOutQuad"
+                    }
+                });
+                showNodeDetail(nodeId);
+            }
+        }
+
+        // ------------------ GAME / SIMULATION MODE (異動實戰賽) ------------------
+        
+        const GAME_LEVELS = [
+            {
+                level: 1,
+                title: "新人員入職情境 (規則 1.1 / 1.2)",
+                scenario: "新同仁即將入職。若為「無代理兼辦」：只需修改該股別之 S3 姓名，並清空 SA 中該股別被他人代理的關係。若為「有代理兼辦」：修改 S3 姓名，並在 SA 設定代理人代碼為代理人的主要帳號。請在右方表單進行參數設定，點擊自動配置後再套用同步。",
+                taskDescription: [
+                    "本情境會自動在 S3 填入新進員工姓名。",
+                    "若無代理，將自動清除 SA 內該股別 (USRID) 舊有的代理/兼辦關係列。",
+                    "若有指定代理人，則會在 SA 中建立一筆被代理股別 (USRID) 關聯到代理人主要帳號 (AGENT) 的關係列。"
+                ],
+                tip: "規則：新人員若有代理，SA 關係的 AGENT 必須設定為該代理人的主要帳號 (如李一良設定為 JV5010)。",
+                wizardSetup: function() {
+                    const fieldsDiv = document.getElementById('game-wizard-fields');
+                    fieldsDiv.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">接任股別:</label>
+                            <select id="wiz-usrid" class="select-input">
+                                ${gameS3Data.map(r => `<option value="${r.USRID}">${r.USRID} - ${r.DPT} (${r.USRNM || '空缺'})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">新員工姓名:</label>
+                            <input type="text" id="wiz-usrnm" class="modal-input" placeholder="例如 張信宏" style="padding: 0.35rem 0.5rem; font-size: 0.8rem;" required>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">是否有代理:</label>
+                            <select id="wiz-has-agent" class="select-input" onchange="toggleWizAgentField(this.value)">
+                                <option value="N">無代理兼辦 (自行辦理)</option>
+                                <option value="Y">有代理或兼任 (需要設定代理人)</option>
+                            </select>
+                        </div>
+                        <div id="wiz-agent-container" style="display: none; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">代理人主要帳號:</label>
+                            <select id="wiz-agent" class="select-input">
+                                ${gameS3Data.filter(r => r.ISLASTLOGIN === 'Y').map(r => `<option value="${r.USRID}">${r.USRNM} (${r.DPT}) [${r.USRID}]</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                },
+                wizardRun: function() {
+                    const usrid = document.getElementById('wiz-usrid').value;
+                    const usrnm = document.getElementById('wiz-usrnm').value.trim();
+                    const hasAgent = document.getElementById('wiz-has-agent').value === 'Y';
+                    const agent = document.getElementById('wiz-agent').value;
+                    
+                    if (!usrnm) {
+                        Swal.fire('未填寫姓名', '請輸入新員工姓名！', 'warning');
+                        return false;
+                    }
+                    
+                    if (hasAgent && usrid === agent) {
+                        Swal.fire('設定錯誤', '新進同仁不能自己代理自己！', 'error');
+                        return false;
+                    }
+                    
+                    saveGameHistory();
+                    
+                    // Modify S3
+                    const target = gameS3Data.find(r => r.USRID === usrid);
+                    if (target) {
+                        target.USRNM = usrnm;
+                    }
+                    
+                    // Modify SA
+                    if (hasAgent) {
+                        // Keep or add agent. Clear existing SA rows for this USRID first.
+                        gameSAData = gameSAData.filter(row => row.USRID !== usrid);
+                        gameSAData.push({
+                            USRID: usrid,
+                            AGENT: agent,
+                            ISAGENT: "N" // Assuming 兼辦 as default or let it be Y based on agent's last login
+                        });
+                    } else {
+                        // Remove all SA proxy rows for this USRID
+                        gameSAData = gameSAData.filter(row => row.USRID !== usrid);
+                    }
+                    return true;
+                },
+                setup: function() {
+                    gameS3Data = JSON.parse(JSON.stringify(S3Data));
+                    gameSAData = JSON.parse(JSON.stringify(SAData));
+                }
+            },
+            {
+                level: 2,
+                title: "內部調動代理情境 (規則 2.2)",
+                scenario: "內部同仁崗位變更，某股別業務需改由其他使用者代理或兼任。在 S3 中，受調動的股別列姓名要修改為「代理人姓名」，且在 SA 中要新增一筆：被代理股別的 USRID，對應代理人的主要帳號。",
+                taskDescription: [
+                    "在 S3 中將被代理股別的姓名 (USRNM) 更改為代理人姓名。",
+                    "在 SA 中新增一筆代理關係列，AGENT 必須設定為代理人的主要帳號。",
+                    "關係類型可選擇純代理 (Y) 或兼辦 (N)。"
+                ],
+                tip: "內部調動規則：S3 的 USRNM 要改為代理人名稱，且 SA 表的 AGENT 要指派代理人主要帳號 (ISLASTLOGIN=Y)。",
+                wizardSetup: function() {
+                    const fieldsDiv = document.getElementById('game-wizard-fields');
+                    fieldsDiv.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">調動股別:</label>
+                            <select id="wiz-usrid" class="select-input">
+                                ${gameS3Data.map(r => `<option value="${r.USRID}">${r.USRID} - ${r.DPT} (${r.USRNM || '無'})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">指定代理人:</label>
+                            <select id="wiz-agent" class="select-input">
+                                ${gameS3Data.filter(r => r.ISLASTLOGIN === 'Y').map(r => `<option value="${r.USRID}">${r.USRNM} (${r.DPT}) [${r.USRID}]</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">代理類型:</label>
+                            <select id="wiz-isagent" class="select-input">
+                                <option value="Y">純代理 (Y)</option>
+                                <option value="N">兼辦 (N)</option>
+                            </select>
+                        </div>
+                    `;
+                },
+                wizardRun: function() {
+                    const usrid = document.getElementById('wiz-usrid').value;
+                    const agent = document.getElementById('wiz-agent').value;
+                    const isagent = document.getElementById('wiz-isagent').value;
+                    
+                    if (usrid === agent) {
+                        Swal.fire('設定錯誤', '同仁無法自己代理自己！', 'error');
+                        return false;
+                    }
+                    
+                    saveGameHistory();
+                    
+                    const agentS3 = gameS3Data.find(r => r.USRID === agent);
+                    const agentName = agentS3 ? agentS3.USRNM : '';
+                    
+                    // Modify S3
+                    const target = gameS3Data.find(r => r.USRID === usrid);
+                    if (target) {
+                        target.USRNM = agentName;
+                    }
+                    
+                    // Modify SA (Clean existing for this usrid first, then add)
+                    gameSAData = gameSAData.filter(row => row.USRID !== usrid);
+                    gameSAData.push({
+                        USRID: usrid,
+                        AGENT: agent,
+                        ISAGENT: isagent
+                    });
+                    
+                    return true;
+                },
+                setup: function() {
+                    gameS3Data = JSON.parse(JSON.stringify(S3Data));
+                    gameSAData = JSON.parse(JSON.stringify(SAData));
+                }
+            },
+            {
+                level: 3,
+                title: "離職交接代理情境 (規則 2.1)",
+                scenario: "同仁辦理離職。在找到新同仁入職前，其原有工作股別由其他使用者代理或兼辦。需將 S3 中離職人工作的股別姓名改為「代理人姓名」，另外在 SA 建立一筆被代理股別 (USRID) 關聯到代理人主要帳號 (AGENT)。",
+                taskDescription: [
+                    "離職同仁股別 S3 中的 USRNM 改為代理人名字。",
+                    "SA.USRID 設為離職人的 USRID，SA.AGENT 設為代理人的主要帳號。",
+                    "若是純代理，ISAGENT 應設為 Y。"
+                ],
+                tip: "離職代理規則：S3.USRNM 改為代理人姓名。SA.USRID 設為離職股別 ID，SA.AGENT 設為代理人主要帳號，純代理設為 Y。",
+                wizardSetup: function() {
+                    const fieldsDiv = document.getElementById('game-wizard-fields');
+                    fieldsDiv.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">離職同仁股別:</label>
+                            <select id="wiz-usrid" class="select-input">
+                                ${gameS3Data.map(r => `<option value="${r.USRID}">${r.USRID} - ${r.DPT} (${r.USRNM || '無'})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">接替代理人:</label>
+                            <select id="wiz-agent" class="select-input">
+                                ${gameS3Data.filter(r => r.ISLASTLOGIN === 'Y').map(r => `<option value="${r.USRID}">${r.USRNM} (${r.DPT}) [${r.USRID}]</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-secondary);">代理類型:</label>
+                            <select id="wiz-isagent" class="select-input">
+                                <option value="Y">純代理 (Y)</option>
+                                <option value="N">兼辦 (N)</option>
+                            </select>
+                        </div>
+                    `;
+                },
+                wizardRun: function() {
+                    const usrid = document.getElementById('wiz-usrid').value;
+                    const agent = document.getElementById('wiz-agent').value;
+                    const isagent = document.getElementById('wiz-isagent').value;
+                    
+                    if (usrid === agent) {
+                        Swal.fire('設定錯誤', '無法指派自己代理自己！', 'error');
+                        return false;
+                    }
+                    
+                    saveGameHistory();
+                    
+                    const agentS3 = gameS3Data.find(r => r.USRID === agent);
+                    const agentName = agentS3 ? agentS3.USRNM : '';
+                    
+                    // Modify S3
+                    const target = gameS3Data.find(r => r.USRID === usrid);
+                    if (target) {
+                        target.USRNM = agentName;
+                    }
+                    
+                    // Modify SA
+                    gameSAData = gameSAData.filter(row => row.USRID !== usrid);
+                    gameSAData.push({
+                        USRID: usrid,
+                        AGENT: agent,
+                        ISAGENT: isagent
+                    });
+                    
+                    return true;
+                },
+                setup: function() {
+                    gameS3Data = JSON.parse(JSON.stringify(S3Data));
+                    gameSAData = JSON.parse(JSON.stringify(SAData));
+                }
+            }
+        ];
+
+        function toggleWizAgentField(val) {
+            const container = document.getElementById('wiz-agent-container');
+            if (container) {
+                container.style.display = val === 'Y' ? 'grid' : 'none';
+            }
+        }
+
+        // Load Game Level
+        function loadGameLevel(levelNum) {
+            currentGameLevel = levelNum;
+            const lvl = GAME_LEVELS.find(l => l.level === levelNum);
+            
+            // UI tabs highlight
+            document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-lvl-${levelNum}`).classList.add('active');
+            
+            // Labels
+            document.getElementById('game-level-tag').textContent = `實戰情境 ${levelNum}`;
+            document.getElementById('game-title').textContent = lvl.title;
+            document.getElementById('game-scenario').textContent = lvl.scenario;
+            document.getElementById('game-tip-box').textContent = lvl.tip;
+            
+            // Tasks
+            const tasksDiv = document.getElementById('game-tasks');
+            tasksDiv.innerHTML = '';
+            lvl.taskDescription.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                item.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-circle"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+                    <span style="font-size:0.8rem;">${task}</span>
+                `;
+                tasksDiv.appendChild(item);
+            });
+            
+            // Reset sandbox and history
+            lvl.setup();
+            
+            // Save initial state for reset/revert functionality
+            initialGameState = {
+                S3: JSON.parse(JSON.stringify(gameS3Data)),
+                SA: JSON.parse(JSON.stringify(gameSAData))
+            };
+            
+            gameHistory = [];
+            gameRedoStack = [];
+            updateUndoRedoButtons();
+            
+            // Setup wizard
+            lvl.wizardSetup();
+            
+            // Render sandbox
+            renderGameSandboxTables();
+        }
+
+        // Save State to History (Undo support)
+        function saveGameHistory() {
+            if (gameHistory.length > 30) {
+                gameHistory.shift(); // Memory cap
+            }
+            gameHistory.push({
+                S3: JSON.parse(JSON.stringify(gameS3Data)),
+                SA: JSON.parse(JSON.stringify(gameSAData))
+            });
+            gameRedoStack = []; // Clear redo stack on new actions
+            updateUndoRedoButtons();
+        }
+
+        function undoGameAction() {
+            if (gameHistory.length > 0) {
+                gameRedoStack.push({
+                    S3: JSON.parse(JSON.stringify(gameS3Data)),
+                    SA: JSON.parse(JSON.stringify(gameSAData))
+                });
+                
+                const prevState = gameHistory.pop();
+                gameS3Data = prevState.S3;
+                gameSAData = prevState.SA;
+                
+                renderGameSandboxTables();
+                updateUndoRedoButtons();
+                showToast("已回到上一步");
+            }
+        }
+
+        function redoGameAction() {
+            if (gameRedoStack.length > 0) {
+                gameHistory.push({
+                    S3: JSON.parse(JSON.stringify(gameS3Data)),
+                    SA: JSON.parse(JSON.stringify(gameSAData))
+                });
+                
+                const nextState = gameRedoStack.pop();
+                gameS3Data = nextState.S3;
+                gameSAData = nextState.SA;
+                
+                renderGameSandboxTables();
+                updateUndoRedoButtons();
+                showToast("已重做下一步");
+            }
+        }
+
+        function resetGameSandbox() {
+            if (initialGameState) {
+                saveGameHistory(); // Allows users to undo the reset!
+                gameS3Data = JSON.parse(JSON.stringify(initialGameState.S3));
+                gameSAData = JSON.parse(JSON.stringify(initialGameState.SA));
+                
+                renderGameSandboxTables();
+                updateUndoRedoButtons();
+                showToast("已還原沙盒初始狀態");
+            }
+        }
+
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('btn-game-undo');
+            const redoBtn = document.getElementById('btn-game-redo');
+            if (undoBtn) undoBtn.disabled = gameHistory.length === 0;
+            if (redoBtn) redoBtn.disabled = gameRedoStack.length === 0;
+        }
+
+        // Run Wizard config
+        function runWizardConfig() {
+            const lvl = GAME_LEVELS.find(l => l.level === currentGameLevel);
+            const success = lvl.wizardRun();
+            if (success) {
+                renderGameSandboxTables();
+                showToast("自動配置成功！");
+            }
+        }
+
+        // Render sandbox tables with change highlights & diff checks
+        function renderGameSandboxTables() {
+            const s3tbody = document.querySelector('#game-s3-table tbody');
+            s3tbody.innerHTML = '';
+            
+            // Build initial S3 map for comparison
+            const initS3Map = {};
+            if (initialGameState) {
+                initialGameState.S3.forEach(row => { initS3Map[row.USRID] = row; });
+            }
+            
+            // Render S3 sandbox
+            gameS3Data.forEach(row => {
+                const tr = document.createElement('tr');
+                const initRow = initS3Map[row.USRID];
+                
+                const isNewNode = !initRow;
+                const isNameChanged = initRow && initRow.USRNM !== row.USRNM;
+                const isLoginChanged = initRow && initRow.ISLASTLOGIN !== row.ISLASTLOGIN;
+                
+                if (isNewNode) tr.classList.add('cell-added');
+                
+                const uniqueNames = [...new Set(S3Data.map(r => r.USRNM).filter(n => !isNullOrEmpty(n)))];
+                if (!uniqueNames.includes('張信宏')) uniqueNames.push('張信宏');
+                if (!uniqueNames.includes('徐一玲')) uniqueNames.push('徐一玲');
+                
+                let nameSelectHtml = `<select class="select-input" onchange="updateGameS3Cell('${row.USRID}', 'USRNM', this.value)">`;
+                nameSelectHtml += `<option value="" ${isNullOrEmpty(row.USRNM) ? 'selected' : ''}>— (無)</option>`;
+                uniqueNames.forEach(name => {
+                    nameSelectHtml += `<option value="${name}" ${row.USRNM === name ? 'selected' : ''}>${name}</option>`;
+                });
+                nameSelectHtml += `</select>`;
+                
+                tr.innerHTML = `
+                    <td style="font-family: monospace; font-weight: 500;">${row.USRID}</td>
+                    <td class="${isNameChanged ? 'cell-changed' : ''}">${nameSelectHtml}</td>
+                    <td>${row.DPT}</td>
+                    <td>${row.DPTCD}</td>
+                    <td style="text-align: center;" class="${isLoginChanged ? 'cell-changed' : ''}">
+                        <input type="checkbox" ${row.ISLASTLOGIN === 'Y' ? 'checked' : ''} onchange="updateGameS3Cell('${row.USRID}', 'ISLASTLOGIN', this.checked ? 'Y' : null)">
+                    </td>
+                `;
+                s3tbody.appendChild(tr);
+            });
+
+            // SA Sandbox Render
+            const satbody = document.querySelector('#game-sa-table tbody');
+            satbody.innerHTML = '';
+            
+            // Build initial SA set for comparison
+            const initSASet = new Set();
+            const initSAMap = {};
+            if (initialGameState) {
+                initialGameState.SA.forEach(row => {
+                    const key = `${row.USRID}_${row.AGENT}`;
+                    initSASet.add(key);
+                    initSAMap[key] = row;
+                });
+            }
+            
+            gameSAData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                const key = `${row.USRID}_${row.AGENT}`;
+                const isNewEdge = !initSASet.has(key);
+                const isTypeChanged = !isNewEdge && initSAMap[key].ISAGENT !== row.ISAGENT;
+                
+                if (isNewEdge) tr.classList.add('cell-added');
+                
+                tr.innerHTML = `
+                    <td style="font-family: monospace;">${row.USRID}</td>
+                    <td style="font-family: monospace;">${row.AGENT}</td>
+                    <td style="text-align: center;" class="${isTypeChanged ? 'cell-changed' : ''}">
+                        <select class="select-input" style="width: auto;" onchange="updateGameSACell(${index}, 'ISAGENT', this.value)">
+                            <option value="Y" ${row.ISAGENT === 'Y' ? 'selected' : ''}>代理 (Y)</option>
+                            <option value="N" ${row.ISAGENT === 'N' ? 'selected' : ''}>兼辦 (N)</option>
+                        </select>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-danger btn-sm" style="padding: 0.25rem 0.5rem;" onclick="deleteGameSARelation(${index})">
+                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                        </button>
+                    </td>
+                `;
+                satbody.appendChild(tr);
+            });
+            lucide.createIcons();
+            
+            // Calculate change logs
+            calculateChangeLogs();
+        }
+
+        // Live Calculate Change Logs
+        function calculateChangeLogs() {
+            const listDiv = document.getElementById('change-log-list');
+            listDiv.innerHTML = '';
+            
+            if (!initialGameState) return;
+            
+            const logs = [];
+            
+            // 1. S3 modifications & additions
+            const initS3Map = {};
+            initialGameState.S3.forEach(row => { initS3Map[row.USRID] = row; });
+            
+            const currentS3Map = {};
+            gameS3Data.forEach(row => { currentS3Map[row.USRID] = row; });
+            
+            gameS3Data.forEach(row => {
+                const init = initS3Map[row.USRID];
+                if (!init) {
+                    logs.push({
+                        type: 'added',
+                        text: `[S3] 新增同仁 ${row.USRNM || '無名'} [${row.USRID}] (${row.DPT})`
+                    });
+                } else {
+                    if (init.USRNM !== row.USRNM) {
+                        logs.push({
+                            type: 'changed',
+                            text: `[S3] ${row.USRID} 姓名：由「${init.USRNM || '空'}」改為「${row.USRNM || '空'}」`
+                        });
+                    }
+                    if (init.ISLASTLOGIN !== row.ISLASTLOGIN) {
+                        logs.push({
+                            type: 'changed',
+                            text: `[S3] ${row.USRID} 主要帳號：由「${init.ISLASTLOGIN === 'Y' ? '是' : '否'}」改為「${row.ISLASTLOGIN === 'Y' ? '是' : '否'}」`
+                        });
+                    }
+                }
+            });
+            
+            // 2. SA additions & modifications
+            const initSAMap = {};
+            initialGameState.SA.forEach(row => { initSAMap[`${row.USRID}_${row.AGENT}`] = row; });
+            
+            const currentSAMap = {};
+            gameSAData.forEach(row => { currentSAMap[`${row.USRID}_${row.AGENT}`] = row; });
+            
+            gameSAData.forEach(row => {
+                const key = `${row.USRID}_${row.AGENT}`;
+                const init = initSAMap[key];
+                const typeText = row.ISAGENT === 'Y' ? '代理' : '兼辦';
+                
+                if (!init) {
+                    logs.push({
+                        type: 'added',
+                        text: `[SA] 新增代理：${row.USRID} 由 ${row.AGENT} ${typeText}`
+                    });
+                } else if (init.ISAGENT !== row.ISAGENT) {
+                    const oldTypeText = init.ISAGENT === 'Y' ? '代理' : '兼辦';
+                    logs.push({
+                        type: 'changed',
+                        text: `[SA] 代理關係 ${row.USRID} → ${row.AGENT}：由「${oldTypeText}」變更為「${typeText}」`
+                    });
+                }
+            });
+            
+            // 3. SA deletions
+            initialGameState.SA.forEach(row => {
+                const key = `${row.USRID}_${row.AGENT}`;
+                const curr = currentSAMap[key];
+                const typeText = row.ISAGENT === 'Y' ? '代理' : '兼辦';
+                
+                if (!curr) {
+                    logs.push({
+                        type: 'removed',
+                        text: `[SA] 移除代理關係：${row.USRID} 原由 ${row.AGENT} ${typeText}`
+                    });
+                }
+            });
+            
+            // Render logs
+            if (logs.length === 0) {
+                listDiv.innerHTML = `<div style="color: var(--text-muted); font-size: 0.75rem; text-align: center; padding: 1rem;">尚無任何變更</div>`;
+            } else {
+                logs.forEach(log => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `diff-row ${log.type === 'added' ? 'diff-added' : log.type === 'removed' ? 'diff-removed' : 'diff-changed'}`;
+                    rowDiv.innerHTML = `
+                        <span>${log.type === 'added' ? '[+]' : log.type === 'removed' ? '[-]' : '[*]'} ${log.text}</span>
+                    `;
+                    listDiv.appendChild(rowDiv);
+                });
+            }
+        }
+
+        // Game sandbox data modifiers
+        function updateGameS3Cell(usrid, field, value) {
+            saveGameHistory();
+            const row = gameS3Data.find(r => r.USRID === usrid);
+            if (row) {
+                if (field === 'ISLASTLOGIN') {
+                    row.ISLASTLOGIN = value;
+                } else {
+                    row.USRNM = value || null;
+                }
+                renderGameSandboxTables();
+                showToast("沙盒 S3 已更新");
+            }
+        }
+
+        function updateGameSACell(index, field, value) {
+            saveGameHistory();
+            gameSAData[index][field] = value;
+            renderGameSandboxTables();
+            showToast("沙盒 SA 已更新");
+        }
+
+        function deleteGameSARelation(index) {
+            saveGameHistory();
+            gameSAData.splice(index, 1);
+            showToast("已從沙盒中移除此代理關係");
+            renderGameSandboxTables();
+        }
+
+        function showAddGameSAModal() {
+            isGameModal = true;
+            document.getElementById('modal-title').textContent = "新增沙盒 SA 代理關係";
+            populateSAModalSelects(gameS3Data);
+            document.getElementById('add-sa-modal').style.display = 'flex';
+        }
+
+        // Sync Simulation data to main database explorer and topology map
+        function syncGameToMain() {
+            Swal.fire({
+                title: '同步至主系統？',
+                text: '這會將此沙盒實戰的所有修改同步套用到「數據中心」與「關係拓撲圖」中！',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: '⚡ 確定同步',
+                cancelButtonText: '取消'
+            }).then((swalResult) => {
+                if (swalResult.isConfirmed) {
+                    S3Data = JSON.parse(JSON.stringify(gameS3Data));
+                    SAData = JSON.parse(JSON.stringify(gameSAData));
+                    
+                    // Render explorer tables immediately
+                    renderS3Table();
+                    renderSATable();
+                    
+                    // Mark level completed visually
+                    document.getElementById(`btn-lvl-${currentGameLevel}`).classList.add('completed');
+                    
+                    // Fireworks confetti!
+                    confetti({
+                        particleCount: 150,
+                        spread: 80,
+                        origin: { y: 0.6 }
+                    });
+                    
+                    Swal.fire({
+                        title: '同步完成！🎉',
+                        text: '修改已全部套用至數據中心與拓撲圖，網頁將自動帶您前往查看！',
+                        icon: 'success',
+                        confirmButtonColor: '#3b82f6'
+                    }).then(() => {
+                        switchTab('data-explorer');
+                    });
+                }
+            });
+        }
+
+        // ------------------ GLOBAL ACTIONS ------------------
+
+        // Reset Data
+        function resetAllData() {
+            Swal.fire({
+                title: '確定還原？',
+                text: "這將會把所有 S3 與 SA 編輯資料還原為初始的 Excel 載入值！",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: '重置還原',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    initData();
+                    renderS3Table();
+                    renderSATable();
+                    
+                    if (activeTab === 'topology-map') {
+                        initTopologyMap();
+                    } else if (activeTab === 'game-mode') {
+                        loadGameLevel(currentGameLevel);
+                    }
+                    
+                    Swal.fire({
+                        title: '重置完成！',
+                        text: '資料庫已成功還原。',
+                        icon: 'success',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                }
+            });
+        }
+
+        // Export back to Excel
+        function exportToExcel() {
+            try {
+                const s3WSData = S3Data.map(row => ({
+                    'USRID': row.USRID,
+                    'USRNM': isNullOrEmpty(row.USRNM) ? '' : row.USRNM,
+                    'DPT': row.DPT,
+                    'DPTCD': row.DPTCD,
+                    'ISLASTLOGIN': isNullOrEmpty(row.ISLASTLOGIN) ? '' : row.ISLASTLOGIN
+                }));
+
+                const saWSData = SAData.map(row => ({
+                    'USRID': row.USRID,
+                    'AGENT': row.AGENT,
+                    'ISAGENT': row.ISAGENT
+                }));
+
+                const wb = XLSX.utils.book_new();
+                
+                const wsS3 = XLSX.utils.json_to_sheet(s3WSData);
+                const wsSA = XLSX.utils.json_to_sheet(saWSData);
+                
+                XLSX.utils.book_append_sheet(wb, wsS3, "S3");
+                XLSX.utils.book_append_sheet(wb, wsSA, "SA");
+                
+                XLSX.writeFile(wb, "S3SA_modified.xlsx");
+                
+                Swal.fire({
+                    title: '匯出成功！🎉',
+                    text: '已生成修改後的 S3SA_modified.xlsx，請查看下載目錄！',
+                    icon: 'success',
+                    confirmButtonColor: '#10b981'
+                });
+            } catch(e) {
+                Swal.fire('匯出失敗', e.message, 'error');
+            }
+        }
+
+        // Helper toast notify
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notify');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            
+            void toast.offsetWidth;
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            initData();
+            renderS3Table();
+            renderSATable();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
